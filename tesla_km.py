@@ -48,6 +48,13 @@ def load_env(path=".env"):
             os.environ.setdefault(k.strip(), v.strip().strip('"'))
 
 
+def _check(r):
+    """Zoals raise_for_status, maar met de uitleg die Tesla meestuurt."""
+    if not r.ok:
+        raise RuntimeError(f"Tesla {r.status_code}: {r.text[:300]}")
+    return r
+
+
 class TeslaClient:
     """Dunne wrapper om de Fleet API: tokens verversen, wakker maken, odometer lezen."""
 
@@ -79,8 +86,7 @@ class TeslaClient:
             "audience": self.api,
             "redirect_uri": cfg("TESLA_REDIRECT_URI", required=True),
         })
-        r.raise_for_status()
-        self._save_tokens(r.json())
+        self._save_tokens(_check(r).json())
 
     def register_domain(self):
         """Eenmalig: registreert TESLA_DOMEIN (waar de publieke sleutel staat) bij Tesla."""
@@ -91,7 +97,7 @@ class TeslaClient:
             "scope": "openid vehicle_device_data",
             "audience": self.api,
         })
-        r.raise_for_status()
+        _check(r)
         r = requests.post(f"{self.api}/api/1/partner_accounts", timeout=30,
                           headers={"Authorization": f"Bearer {r.json()['access_token']}"},
                           json={"domain": cfg("TESLA_DOMEIN", required=True)})
@@ -107,8 +113,7 @@ class TeslaClient:
             "client_id": self.client_id,
             "refresh_token": t["refresh_token"],
         })
-        r.raise_for_status()
-        new = r.json()
+        new = _check(r).json()
         new.setdefault("refresh_token", t["refresh_token"])
         self._save_tokens(new)
         return new["access_token"]
