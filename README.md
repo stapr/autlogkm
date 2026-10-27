@@ -88,3 +88,44 @@ de auto, of de Shortcut handmatig starten.
 - Twee keer `/open` achter elkaar laat de eerste rit onvolledig; zichtbaar als `onvolledig` in het rapport.
 - Odometer komt van Tesla in mijlen en wordt omgerekend naar km (1 mi = 1,609344 km).
 - `ritten.csv` opent direct in Excel/Google Sheets voor de administratie.
+
+## Draaien op een eigen server (Ubuntu, bijv. Proxmox VM of LXC)
+
+Een server die altijd aan staat is betrouwbaarder dan een laptop. Dit werkt op elke Ubuntu/Debian-machine.
+
+1. **Tailscale installeren en aanmelden** op de server, zodat de iPhone erbij kan zonder poort open te zetten:
+   ```bash
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up
+   ```
+   Noteer de naam of het `100.x.y.z`-adres in de Tailscale-app.
+2. **Repo klonen en installeren:**
+   ```bash
+   git clone https://github.com/stapr/autlogkm.git && cd autlogkm
+   sudo bash deploy/install.sh
+   ```
+3. **Instellingen overbrengen** (vanaf de Mac, waar je al ingelogd bent):
+   ```bash
+   scp .env tokens.json <gebruiker>@<server>:/tmp/
+   ssh <gebruiker>@<server> 'sudo mv /tmp/.env /tmp/tokens.json /opt/autlogkm/ && \
+     sudo chown teslakm:teslakm /opt/autlogkm/.env /opt/autlogkm/tokens.json && \
+     sudo chmod 600 /opt/autlogkm/.env /opt/autlogkm/tokens.json'
+   ```
+   **Gebruik daarna `tokens.json` maar op één plek.** Tesla-refresh-tokens zijn eenmalig: draait het script
+   ook nog op de Mac, dan maakt de ene kopie de andere ongeldig. Draai daarna alleen nog op de server.
+4. **Starten en controleren:**
+   ```bash
+   sudo systemctl enable --now tesla-km
+   systemctl status tesla-km
+   journalctl -u tesla-km -f
+   curl "http://localhost:8080/report?token=<WEBHOOK_TOKEN>"
+   ```
+5. **Shortcuts** wijzen naar `http://<tailscale-naam>:8080/open?token=…` en `/close?token=…`.
+
+Ritten staan in `/opt/autlogkm/ritten.csv`. Maak een back-up via een Proxmox-snapshot of kopieer het bestand regelmatig.
+
+### Als de server even niet bereikbaar is
+Een mislukte aanroep betekent een gemiste meting. Zet daarom in elke Shortcut na *Haal inhoud van URL op* een
+*Als*-stap: als het resultaat leeg is of `fout` bevat, toon dan een melding ("Tesla-km niet gelogd").
+Zo weet je op het moment zelf dat je de stand handmatig moet noteren. Een `/close` zonder `/open`
+levert een rit zonder begin op en staat als `onvolledig` in het rapport.

@@ -1,0 +1,21 @@
+[Unit]
+Description=Tesla kilometerregistratie (webhook voor Apple Shortcut)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=teslakm
+Group=teslakm
+WorkingDirectory=/opt/autlogkm
+ExecStart=/opt/autlogkm/.venv/bin/python /opt/autlogkm/tesla_km.py serve
+Restart=always
+RestartSec=5
+# .env, tokens.json en ritten.csv staan in WorkingDirectory
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/autlogkm
+
+[Install]
+WantedBy=multi-user.target
