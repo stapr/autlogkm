@@ -8,6 +8,7 @@ Gebruik:
     python tesla_km.py serve            # webhook voor de Shortcut
     python tesla_km.py open|close       # handmatig een meting doen
     python tesla_km.py report [YYYY-MM] # samenvatting per maand
+    python tesla_km.py register         # eenmalig: domein registreren bij Tesla
     python tesla_km.py auth-url         # eenmalig: inloglink voor Tesla
     python tesla_km.py auth-code CODE   # eenmalig: code inwisselen voor tokens
 """
@@ -80,6 +81,21 @@ class TeslaClient:
         })
         r.raise_for_status()
         self._save_tokens(r.json())
+
+    def register_domain(self):
+        """Eenmalig: registreert TESLA_DOMEIN (waar de publieke sleutel staat) bij Tesla."""
+        r = requests.post(f"{AUTH_URL}/token", timeout=30, data={
+            "grant_type": "client_credentials",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "scope": "openid vehicle_device_data",
+            "audience": self.api,
+        })
+        r.raise_for_status()
+        r = requests.post(f"{self.api}/api/1/partner_accounts", timeout=30,
+                          headers={"Authorization": f"Bearer {r.json()['access_token']}"},
+                          json={"domain": cfg("TESLA_DOMEIN", required=True)})
+        return r.status_code, r.text
 
     def _access_token(self):
         t = self._load_tokens()
@@ -224,6 +240,8 @@ def main(argv):
 
     if cmd == "report":
         print(json.dumps(log.report(argv[2] if len(argv) > 2 else None), indent=2, ensure_ascii=False))
+    elif cmd == "register":
+        print(*TeslaClient().register_domain())
     elif cmd == "auth-url":
         print(f"{AUTH_URL}/authorize?" + urlencode({
             "response_type": "code",

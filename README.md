@@ -22,9 +22,12 @@ cp .env.example .env      # vul client id/secret, redirect-uri, VIN en WEBHOOK_T
 De publieke sleutel staat al in `.well-known/appspecific/com.tesla.3p.public-key.pem`
 (dit is wat Tesla bij de Fleet API-registratie opvraagt).
 
-## 2. Eenmalig inloggen bij Tesla
+## 2. Eenmalig registreren en inloggen bij Tesla
+
+Zet `TESLA_DOMEIN` in `.env` (het domein waarop de publieke sleutel bereikbaar is, zonder `https://`).
 
 ```bash
+python tesla_km.py register        # domein registreren bij Tesla (EU-regio)
 python tesla_km.py auth-url        # open de link, log in, geef toestemming
 python tesla_km.py auth-code <code uit de redirect-url>
 ```
