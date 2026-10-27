@@ -32,6 +32,12 @@ python tesla_km.py auth-url        # open de link, log in, geef toestemming
 python tesla_km.py auth-code <code uit de redirect-url>
 ```
 
+**Let op bij "redirect_uri is not registered":** in de Tesla-portal (Nederlandstalig) wordt de OAuth-redirect
+gecontroleerd tegen **Toegestane doorlink-URI('s)**, niet tegen *Toegestane retour-URL('s)*. Zet
+`TESLA_REDIRECT_URI` (bijv. `https://stapr.github.io/callback`) in het veld *doorlink-URI* en
+zorg dat *Type OAuth Grant* `authorization-code` bevat. `register` werkt ook zonder dit, dus
+een geslaagde `register` bewijst niet dat de redirect goed staat.
+
 Tokens komen in `tokens.json` (niet in git). Het script ververst ze zelf; Tesla-refresh-tokens
 zijn eenmalig bruikbaar, dus laat `tokens.json` schrijfbaar.
 
